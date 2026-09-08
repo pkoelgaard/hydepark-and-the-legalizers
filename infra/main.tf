@@ -81,18 +81,17 @@ resource "aws_security_group" "web" {
 }
 
 resource "aws_key_pair" "this" {
-  key_name   = "${var.instance_name}-key"
+  key_name   = "${var.instance_name}-key-${substr(sha256(var.public_key), 0, 8)}"
   public_key = var.public_key
-  tags       = var.common_tags
 }
 
 resource "aws_instance" "this" {
-  ami                         = data.aws_ami.amazon_linux.id
-  instance_type               = var.instance_type
-  subnet_id                   = tolist(data.aws_subnets.default.ids)[0]
-  vpc_security_group_ids      = [aws_security_group.web.id]
-  key_name                    = aws_key_pair.this.key_name
-  disable_api_termination     = var.enable_termination_protection
+  ami                     = data.aws_ami.amazon_linux.id
+  instance_type           = var.instance_type
+  subnet_id               = tolist(data.aws_subnets.default.ids)[0]
+  vpc_security_group_ids  = [aws_security_group.web.id]
+  key_name                = aws_key_pair.this.key_name
+  disable_api_termination = var.enable_termination_protection
 
   root_block_device {
     volume_type           = "gp3"
