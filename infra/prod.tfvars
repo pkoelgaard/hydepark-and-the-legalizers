@@ -2,7 +2,7 @@ aws_region    = "eu-north-1"
 instance_name = "hydepark-prod"
 instance_type = "t3.micro"
 
-root_volume_size_gb = 20
+root_volume_size_gb = 30
 
 # Restrict SSH to your current public IP.
 allowed_ssh_cidr = ["109.198.138.170/32"]
