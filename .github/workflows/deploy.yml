@@ -17,11 +17,13 @@ concurrency:
 env:
   AWS_REGION: eu-north-1
   AWS_ROLE_ARN: arn:aws:iam::316865757087:role/hydepark-github-actions
+  DEPLOY_BUCKET: hydepark-and-the-legalizers-deploy-316865757087
 
 jobs:
   terraform:
     name: Terraform production
     runs-on: ubuntu-latest
+
     outputs:
       ec2_host: ${{ steps.tf_output.outputs.ec2_host }}
 
@@ -72,46 +74,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Start SSH agent
-        env:
-          SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
-          SSH_PASSPHRASE: ${{ secrets.EC2_SSH_PASSPHRASE }}
-        run: |
-          set -euo pipefail
-
-          printf '%s\n' "$SSH_KEY" > key.pem
-          chmod 600 key.pem
-
-          cat > ssh-askpass.sh <<'ASKPASS'
-          #!/bin/sh
-          printf '%s\n' "$SSH_PASSPHRASE"
-          ASKPASS
-          chmod 700 ssh-askpass.sh
-
-          eval "$(ssh-agent -s)"
-          echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK" >> "$GITHUB_ENV"
-          echo "SSH_AGENT_PID=$SSH_AGENT_PID" >> "$GITHUB_ENV"
-          echo "SSH_ASKPASS=$GITHUB_WORKSPACE/ssh-askpass.sh" >> "$GITHUB_ENV"
-          echo "SSH_ASKPASS_REQUIRE=force" >> "$GITHUB_ENV"
-
-          export SSH_ASKPASS="$GITHUB_WORKSPACE/ssh-askpass.sh"
-          export SSH_ASKPASS_REQUIRE=force
-
-          setsid ssh-add key.pem </dev/null
-
-      - name: Wait for SSH
-        env:
-          EC2_HOST: ${{ needs.terraform.outputs.ec2_host }}
-        run: |
-          for i in {1..30}; do
-            if ssh               -o StrictHostKeyChecking=no               -o ConnectTimeout=5               ec2-user@"$EC2_HOST" 'echo SSH ready' 2>/dev/null; then
-              exit 0
-            fi
-            echo "Waiting for SSH... attempt $i/30"
-            sleep 10
-          done
-          echo "SSH did not become available in time."
-          exit 1
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: Package application
         run: |
@@ -123,54 +90,186 @@ jobs:
             infra/scripts/enable-https.sh \
             infra/systemd/hydepark.service
 
-      - name: Upload application
+      - name: Upload deployment artifact to S3
         env:
-          EC2_HOST: ${{ needs.terraform.outputs.ec2_host }}
+          GITHUB_SHA: ${{ github.sha }}
         run: |
-          scp \
-            -o StrictHostKeyChecking=no \
+          set -euo pipefail
+
+          aws s3 cp \
             hydepark-deploy.tar.gz \
-            ec2-user@"$EC2_HOST":/tmp/hydepark-deploy.tar.gz
+            "s3://${DEPLOY_BUCKET}/releases/${GITHUB_SHA}.tar.gz"
 
-      - name: Install and restart application
+          echo "Deployment artifact uploaded:"
+          echo "s3://${DEPLOY_BUCKET}/releases/${GITHUB_SHA}.tar.gz"
+
+      - name: Create remote deployment script
         env:
-          EC2_HOST: ${{ needs.terraform.outputs.ec2_host }}
+          GITHUB_SHA: ${{ github.sha }}
         run: |
-          ssh \
-            -o StrictHostKeyChecking=no \
-            ec2-user@"$EC2_HOST" \
-            'bash -s' <<'REMOTE'
-          set -e
+          cat > remote-deploy.sh <<EOF_REMOTE
+          set -euo pipefail
 
-          sudo mkdir -p /opt/hydepark/app /opt/hydepark/scripts
-          sudo tar -xzf /tmp/hydepark-deploy.tar.gz -C /opt/hydepark
+          BUCKET="${DEPLOY_BUCKET}"
+          KEY="releases/${GITHUB_SHA}.tar.gz"
+          ARCHIVE="/tmp/hydepark-deploy.tar.gz"
 
+          echo "Downloading deployment artifact..."
+          aws s3 cp \
+            "s3://\${BUCKET}/\${KEY}" \
+            "\${ARCHIVE}" \
+            --region "${AWS_REGION}"
+
+          echo "Preparing application directories..."
+          sudo mkdir -p /opt/hydepark/app
+          sudo mkdir -p /opt/hydepark/scripts
+
+          echo "Extracting deployment artifact..."
+          sudo tar \
+            -xzf "\${ARCHIVE}" \
+            -C /opt/hydepark
+
+          echo "Setting ownership..."
           sudo chown -R ec2-user:ec2-user /opt/hydepark
 
+          echo "Installing Python dependencies..."
           /opt/hydepark/venv/bin/pip install --upgrade pip
-          /opt/hydepark/venv/bin/pip install -r /opt/hydepark/app/requirements.txt
+          /opt/hydepark/venv/bin/pip install \
+            -r /opt/hydepark/app/requirements.txt
 
-          sudo install -m 0755 \
+          echo "Installing HTTPS script..."
+          sudo install \
+            -m 0755 \
             /opt/hydepark/infra/scripts/enable-https.sh \
             /opt/hydepark/scripts/enable-https.sh
 
-          sudo install -m 0644 \
+          echo "Installing systemd service..."
+          sudo install \
+            -m 0644 \
             /opt/hydepark/infra/systemd/hydepark.service \
             /etc/systemd/system/hydepark.service
 
+          echo "Reloading systemd..."
           sudo systemctl daemon-reload
+
+          echo "Enabling application service..."
           sudo systemctl enable hydepark
+
+          echo "Restarting application..."
           sudo systemctl restart hydepark
 
-          rm -f /tmp/hydepark-deploy.tar.gz
-
-          echo "Application deployment complete."
+          echo "Checking application service..."
           sudo systemctl --no-pager --full status hydepark
-          REMOTE
 
-      - name: Clean up SSH key and agent
-        if: always()
+          echo "Testing local application..."
+          curl --fail --silent --show-error \
+            http://127.0.0.1:5000/ \
+            > /tmp/hydepark-local-test.txt
+
+          echo "Application response:"
+          cat /tmp/hydepark-local-test.txt
+
+          echo "Cleaning up..."
+          rm -f "\${ARCHIVE}"
+
+          echo "Deployment complete."
+          EOF_REMOTE
+
+          chmod 700 remote-deploy.sh
+
+      - name: Send deployment command via SSM
+        id: ssm
+        env:
+          EC2_INSTANCE_ID: i-0fca199034189d8cf
         run: |
-          ssh-add -d "$GITHUB_WORKSPACE/key.pem" 2>/dev/null || true
-          ssh-agent -k 2>/dev/null || true
-          rm -f key.pem ssh-askpass.sh
+          set -euo pipefail
+
+          COMMANDS_JSON=$(jq -cn \
+            --rawfile command remote-deploy.sh \
+            '{commands: [$command]}')
+
+          COMMAND_ID=$(aws ssm send-command \
+            --region "$AWS_REGION" \
+            --instance-ids "$EC2_INSTANCE_ID" \
+            --document-name "AWS-RunShellScript" \
+            --parameters "$COMMANDS_JSON" \
+            --comment "Hydepark deployment ${GITHUB_SHA}" \
+            --query 'Command.CommandId' \
+            --output text)
+
+          echo "SSM Command ID: $COMMAND_ID"
+          echo "command_id=$COMMAND_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for SSM deployment
+        env:
+          EC2_INSTANCE_ID: i-0fca199034189d8cf
+          COMMAND_ID: ${{ steps.ssm.outputs.command_id }}
+        run: |
+          set -euo pipefail
+
+          echo "Waiting for SSM command to finish..."
+
+          for i in {1..60}; do
+            STATUS=$(aws ssm get-command-invocation \
+              --region "$AWS_REGION" \
+              --command-id "$COMMAND_ID" \
+              --instance-id "$EC2_INSTANCE_ID" \
+              --query 'Status' \
+              --output text)
+
+            echo "Attempt $i/60 - Status: $STATUS"
+
+            case "$STATUS" in
+              Success)
+                echo "Deployment succeeded."
+                exit 0
+                ;;
+              Failed|Cancelled|TimedOut|Cancelling)
+                echo "Deployment failed with status: $STATUS"
+                echo
+                echo "STDOUT:"
+                aws ssm get-command-invocation \
+                  --region "$AWS_REGION" \
+                  --command-id "$COMMAND_ID" \
+                  --instance-id "$EC2_INSTANCE_ID" \
+                  --query 'StandardOutputContent' \
+                  --output text || true
+                echo
+                echo "STDERR:"
+                aws ssm get-command-invocation \
+                  --region "$AWS_REGION" \
+                  --command-id "$COMMAND_ID" \
+                  --instance-id "$EC2_INSTANCE_ID" \
+                  --query 'StandardErrorContent' \
+                  --output text || true
+                exit 1
+                ;;
+            esac
+
+            sleep 5
+          done
+
+          echo "Timed out waiting for SSM deployment."
+          exit 1
+
+      - name: Show deployment output
+        env:
+          EC2_INSTANCE_ID: i-0fca199034189d8cf
+          COMMAND_ID: ${{ steps.ssm.outputs.command_id }}
+        run: |
+          echo "===== SSM STDOUT ====="
+          aws ssm get-command-invocation \
+            --region "$AWS_REGION" \
+            --command-id "$COMMAND_ID" \
+            --instance-id "$EC2_INSTANCE_ID" \
+            --query 'StandardOutputContent' \
+            --output text
+
+          echo
+          echo "===== SSM STDERR ====="
+          aws ssm get-command-invocation \
+            --region "$AWS_REGION" \
+            --command-id "$COMMAND_ID" \
+            --instance-id "$EC2_INSTANCE_ID" \
+            --query 'StandardErrorContent' \
+            --output text
