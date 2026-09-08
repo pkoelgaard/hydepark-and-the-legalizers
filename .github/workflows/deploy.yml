@@ -1,0 +1,176 @@
+name: Deploy production
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: true
+
+env:
+  AWS_REGION: eu-north-1
+  AWS_ROLE_ARN: arn:aws:iam::316865757087:role/hydepark-github-actions
+
+jobs:
+  terraform:
+    name: Terraform production
+    runs-on: ubuntu-latest
+    outputs:
+      ec2_host: ${{ steps.tf_output.outputs.ec2_host }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform init
+        working-directory: infra
+        run: |
+          terraform init \
+            -backend-config=config/backend-prod.hcl
+
+      - name: Terraform plan
+        working-directory: infra
+        run: |
+          terraform plan \
+            -var-file=prod.tfvars
+
+      - name: Terraform apply
+        working-directory: infra
+        run: |
+          terraform apply \
+            -auto-approve \
+            -var-file=prod.tfvars
+
+      - name: Get EC2 public IP
+        id: tf_output
+        working-directory: infra
+        run: |
+          echo "ec2_host=$(terraform output -raw public_ip)" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    name: Deploy application
+    needs: terraform
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Start SSH agent
+        env:
+          SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+          SSH_PASSPHRASE: ${{ secrets.EC2_SSH_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+
+          printf '%s\n' "$SSH_KEY" > key.pem
+          chmod 600 key.pem
+
+          cat > ssh-askpass.sh <<'ASKPASS'
+          #!/bin/sh
+          printf '%s\n' "$SSH_PASSPHRASE"
+          ASKPASS
+          chmod 700 ssh-askpass.sh
+
+          eval "$(ssh-agent -s)"
+          echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK" >> "$GITHUB_ENV"
+          echo "SSH_AGENT_PID=$SSH_AGENT_PID" >> "$GITHUB_ENV"
+          echo "SSH_ASKPASS=$GITHUB_WORKSPACE/ssh-askpass.sh" >> "$GITHUB_ENV"
+          echo "SSH_ASKPASS_REQUIRE=force" >> "$GITHUB_ENV"
+
+          export SSH_ASKPASS="$GITHUB_WORKSPACE/ssh-askpass.sh"
+          export SSH_ASKPASS_REQUIRE=force
+
+          setsid ssh-add key.pem </dev/null
+
+      - name: Wait for SSH
+        env:
+          EC2_HOST: ${{ needs.terraform.outputs.ec2_host }}
+        run: |
+          for i in {1..30}; do
+            if ssh               -o StrictHostKeyChecking=no               -o ConnectTimeout=5               ec2-user@"$EC2_HOST" 'echo SSH ready' 2>/dev/null; then
+              exit 0
+            fi
+            echo "Waiting for SSH... attempt $i/30"
+            sleep 10
+          done
+          echo "SSH did not become available in time."
+          exit 1
+
+      - name: Package application
+        run: |
+          tar \
+            --exclude='__pycache__' \
+            --exclude='*.pyc' \
+            -czf hydepark-deploy.tar.gz \
+            app \
+            infra/scripts/enable-https.sh \
+            infra/systemd/hydepark.service
+
+      - name: Upload application
+        env:
+          EC2_HOST: ${{ needs.terraform.outputs.ec2_host }}
+        run: |
+          scp \
+            -o StrictHostKeyChecking=no \
+            hydepark-deploy.tar.gz \
+            ec2-user@"$EC2_HOST":/tmp/hydepark-deploy.tar.gz
+
+      - name: Install and restart application
+        env:
+          EC2_HOST: ${{ needs.terraform.outputs.ec2_host }}
+        run: |
+          ssh \
+            -o StrictHostKeyChecking=no \
+            ec2-user@"$EC2_HOST" \
+            'bash -s' <<'REMOTE'
+          set -e
+
+          sudo mkdir -p /opt/hydepark/app /opt/hydepark/scripts
+          sudo tar -xzf /tmp/hydepark-deploy.tar.gz -C /opt/hydepark
+
+          sudo chown -R ec2-user:ec2-user /opt/hydepark
+
+          /opt/hydepark/venv/bin/pip install --upgrade pip
+          /opt/hydepark/venv/bin/pip install -r /opt/hydepark/app/requirements.txt
+
+          sudo install -m 0755 \
+            /opt/hydepark/infra/scripts/enable-https.sh \
+            /opt/hydepark/scripts/enable-https.sh
+
+          sudo install -m 0644 \
+            /opt/hydepark/infra/systemd/hydepark.service \
+            /etc/systemd/system/hydepark.service
+
+          sudo systemctl daemon-reload
+          sudo systemctl enable hydepark
+          sudo systemctl restart hydepark
+
+          rm -f /tmp/hydepark-deploy.tar.gz
+
+          echo "Application deployment complete."
+          sudo systemctl --no-pager --full status hydepark
+          REMOTE
+
+      - name: Clean up SSH key and agent
+        if: always()
+        run: |
+          ssh-add -d "$GITHUB_WORKSPACE/key.pem" 2>/dev/null || true
+          ssh-agent -k 2>/dev/null || true
+          rm -f key.pem ssh-askpass.sh

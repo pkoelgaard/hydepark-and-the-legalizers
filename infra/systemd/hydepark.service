@@ -1,0 +1,13 @@
+[Unit]
+Description=Hyde Park and the Legalizers web application
+After=network.target
+
+[Service]
+User=ec2-user
+WorkingDirectory=/opt/hydepark/app
+ExecStart=/opt/hydepark/venv/bin/gunicorn --bind 127.0.0.1:5000 --workers 2 web:app
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
