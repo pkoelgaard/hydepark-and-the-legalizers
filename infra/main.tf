@@ -15,6 +15,37 @@ provider "aws" {
   region = var.aws_region
 }
 
+resource "aws_iam_role" "ec2_ssm" {
+  name = "${var.instance_name}-ec2-ssm"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+
+  tags = merge(var.common_tags, {
+    Name = "${var.instance_name}-ec2-ssm"
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "ec2_ssm" {
+  role       = aws_iam_role.ec2_ssm.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+resource "aws_iam_instance_profile" "ec2_ssm" {
+  name = "${var.instance_name}-ec2-ssm"
+  role = aws_iam_role.ec2_ssm.name
+}
+
 data "aws_ami" "amazon_linux" {
   most_recent = true
   owners      = ["amazon"]
@@ -87,6 +118,7 @@ resource "aws_key_pair" "this" {
 
 resource "aws_instance" "this" {
   ami                     = data.aws_ami.amazon_linux.id
+  iam_instance_profile    = aws_iam_instance_profile.ec2_ssm.name
   instance_type           = var.instance_type
   subnet_id               = tolist(data.aws_subnets.default.ids)[0]
   vpc_security_group_ids  = [aws_security_group.web.id]
