@@ -162,9 +162,31 @@ jobs:
           sudo systemctl --no-pager --full status hydepark
 
           echo "Testing local application..."
-          curl --fail --silent --show-error \
+
+          for i in {1..30}; do
+            if curl --fail --silent --show-error \
+              http://127.0.0.1:5000/ \
+              > /tmp/hydepark-local-test.txt; then
+              echo "Application is responding."
+              break
+            fi
+
+            echo "Application not ready yet - attempt $i/30"
+            sleep 2
+          done
+
+          if ! curl --fail --silent --show-error \
             http://127.0.0.1:5000/ \
-            > /tmp/hydepark-local-test.txt
+            > /tmp/hydepark-local-test.txt; then
+            echo "Application failed health check."
+            echo
+            echo "Service status:"
+            sudo systemctl --no-pager --full status hydepark || true
+            echo
+            echo "Recent journal:"
+            sudo journalctl -u hydepark -n 50 --no-pager || true
+            exit 1
+          fi
 
           echo "Application response:"
           cat /tmp/hydepark-local-test.txt
