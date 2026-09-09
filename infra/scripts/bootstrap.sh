@@ -17,7 +17,7 @@ cat > /etc/nginx/conf.d/hydepark.conf <<'NGINX'
 server {
     listen 80;
     listen [::]:80;
-    server_name hydepark-and-the-legalizers.dk www.hydepark-and-the-legalizers.dk;
+    server_name hydepark-and-the-legalizers.com www.hydepark-and-the-legalizers.com;
 
     location / {
         proxy_pass http://127.0.0.1:5000;

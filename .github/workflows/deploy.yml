@@ -171,7 +171,7 @@ jobs:
               break
             fi
 
-            echo "Application not ready yet - attempt $i/30"
+            echo "Application not ready yet - attempt \$i/30"
             sleep 2
           done
 
@@ -190,6 +190,20 @@ jobs:
 
           echo "Application response:"
           cat /tmp/hydepark-local-test.txt
+          echo "Testing EPK endpoint..."
+          if ! curl --fail --silent --show-error \
+            http://127.0.0.1:5000/epk \
+            > /tmp/hydepark-epk-test.txt; then
+            echo "EPK endpoint failed health check."
+            echo
+            echo "EPK response:"
+            cat /tmp/hydepark-epk-test.txt 2>/dev/null || true
+            echo
+            echo "Recent journal:"
+            sudo journalctl -u hydepark -n 50 --no-pager || true
+            exit 1
+          fi
+          echo "EPK endpoint OK."
 
           echo "Cleaning up..."
           rm -f "\${ARCHIVE}"

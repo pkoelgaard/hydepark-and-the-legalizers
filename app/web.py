@@ -1,11 +1,16 @@
-from flask import Flask
+from flask import Flask, render_template
 
 app = Flask(__name__)
 
 
 @app.get("/")
 def index():
-    return "Hyde Park and the Legalizers — EPK coming soon"
+    return "Hyde Park and the Legalizers — coming soon"
+
+
+@app.get("/epk")
+def epk():
+    return render_template("epk.html")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,85 @@
+cat > app/templates/epk.html <<'HTML'
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>Hyde Park and the Legalizers — EPK</title>
+    <meta
+        name="description"
+        content="Electronic Press Kit for Hyde Park and the Legalizers."
+    >
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/epk.css') }}"
+    >
+</head>
+
+<body>
+    <header class="hero">
+        <div class="hero-inner">
+            <p class="eyebrow">ELECTRONIC PRESS KIT</p>
+
+            <h1>
+                Hyde Park<br>
+                <span>and the Legalizers</span>
+            </h1>
+
+            <p class="intro">
+                Official press kit, music, biography, photos and contact.
+            </p>
+
+            <a class="button" href="#about">Explore EPK</a>
+        </div>
+    </header>
+
+    <main>
+        <section id="about" class="section">
+            <p class="section-label">01 — ABOUT</p>
+
+            <h2>Hyde Park and the Legalizers</h2>
+
+            <p class="placeholder">
+                Biography coming soon.
+            </p>
+        </section>
+
+        <section class="section">
+            <p class="section-label">02 — MUSIC</p>
+
+            <h2>Music</h2>
+
+            <p class="placeholder">
+                Music, releases and streaming links coming soon.
+            </p>
+        </section>
+
+        <section class="section">
+            <p class="section-label">03 — PRESS</p>
+
+            <h2>Press &amp; Downloads</h2>
+
+            <p class="placeholder">
+                Press photos, logos and downloadable material coming soon.
+            </p>
+        </section>
+
+        <section class="section">
+            <p class="section-label">04 — CONTACT</p>
+
+            <h2>Contact</h2>
+
+            <p class="placeholder">
+                Booking and press contact coming soon.
+            </p>
+        </section>
+    </main>
+
+    <footer>
+        <p>© Hyde Park and the Legalizers</p>
+    </footer>
+</body>
+</html>
+HTML

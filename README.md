@@ -22,7 +22,7 @@ This repository is a clean production-only blueprint based on the `cicd101` proj
 4. Create an EC2 key pair or provide the path to your local public key in `infra/prod.tfvars`.
 5. Set your public SSH CIDR in `infra/prod.tfvars`.
 6. Run Terraform from `infra/` using `config/backend-prod.hcl`.
-7. Point `hydepark-and-the-legalizers.dk` and `www.hydepark-and-the-legalizers.dk` to the Elastic IP shown by Terraform.
+7. Point `hydepark-and-the-legalizers.com` and `www.hydepark-and-the-legalizers.com` to the Elastic IP shown by Terraform.
 8. After DNS resolves, SSH to the server and run:
 
    ```bash
