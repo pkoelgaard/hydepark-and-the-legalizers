@@ -5,7 +5,7 @@ app = Flask(__name__)
 
 @app.get("/")
 def index():
-    return "Hyde Park and the Legalizers — coming soon"
+    return "Hydepark and the Legalizers — coming soon"
 
 
 @app.get("/epk")

@@ -1,4 +1,4 @@
-# Hyde Park and the Legalizers — production blueprint
+# Hydepark and the Legalizers — production blueprint
 
 This repository is a clean production-only blueprint based on the `cicd101` project.
 
