@@ -15,6 +15,11 @@ provider "aws" {
   region = var.aws_region
 }
 
+variable "ami_id" {
+  description = "AMI ID used for the production EC2 instance"
+  type        = string
+}
+
 resource "aws_iam_role" "ec2_ssm" {
   name = "${var.instance_name}-ec2-ssm"
 
@@ -44,21 +49,6 @@ resource "aws_iam_role_policy_attachment" "ec2_ssm" {
 resource "aws_iam_instance_profile" "ec2_ssm" {
   name = "${var.instance_name}-ec2-ssm"
   role = aws_iam_role.ec2_ssm.name
-}
-
-data "aws_ami" "amazon_linux" {
-  most_recent = true
-  owners      = ["amazon"]
-
-  filter {
-    name   = "name"
-    values = ["al2023-ami-*-x86_64"]
-  }
-
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
-  }
 }
 
 data "aws_vpc" "default" {
@@ -117,7 +107,7 @@ resource "aws_key_pair" "this" {
 }
 
 resource "aws_instance" "this" {
-  ami                     = data.aws_ami.amazon_linux.id
+  ami                     = var.ami_id
   iam_instance_profile    = aws_iam_instance_profile.ec2_ssm.name
   instance_type           = var.instance_type
   subnet_id               = tolist(data.aws_subnets.default.ids)[0]
