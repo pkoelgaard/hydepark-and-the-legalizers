@@ -135,4 +135,7 @@ resource "aws_eip" "this" {
   domain   = "vpc"
   instance = aws_instance.this.id
   tags     = merge(var.common_tags, { Name = "${var.instance_name}-eip" })
+  lifecycle {
+    prevent_destroy = true
+  }
 }
