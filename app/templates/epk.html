@@ -121,6 +121,7 @@
                 dub- og sound system-miljøet danner fundamentet for bandets
                 musikalske udtryk.
             </p>
+
             <p>
                 <strong>Hydepark:</strong> Vokal<br>
                 <strong>Peter Kølgaard:</strong> Guitar<br>
@@ -134,9 +135,29 @@
 
             <h2>Music</h2>
 
-            <p class="placeholder">
-                Music, releases and streaming links coming soon.
-            </p>
+            <p class="music-intro">Demo recordings:</p>
+
+            <div class="music-links">
+                <a
+                    class="music-link"
+                    href="https://soundcloud.com/djhydepark/utroligt"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                >
+                    <span>Utroligt</span>
+                    <small>Listen on SoundCloud ↗</small>
+                </a>
+
+                <a
+                    class="music-link"
+                    href="https://soundcloud.com/djhydepark/detkadudagodt"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                >
+                    <span>Det ka' du da godt</span>
+                    <small>Listen on SoundCloud ↗</small>
+                </a>
+            </div>
         </section>
 
         <section class="section">
@@ -144,23 +165,58 @@
 
             <h2>Press &amp; Downloads</h2>
 
-            <p class="placeholder">
-                Press photos, logos and downloadable material coming soon.
+            <p class="press-intro">
+                High-resolution press photos. Click an image to open the original file.
             </p>
 
             <div class="press-images">
-                <img
-                    src="{{ url_for('static', filename='graphics/hydepark-and-the-legalizers-logo.jpg') }}"
-                    alt="Hydepark and the Legalizers logo"
+                <a
+                    href="{{ url_for('static', filename='images/Hydepark.jpg') }}"
+                    target="_blank"
+                    rel="noopener noreferrer"
                 >
-                <img
-                    src="{{ url_for('static', filename='images/bandselfie.jpg') }}"
-                    alt="Hydepark and the Legalizers"
+                    <img
+                        src="{{ url_for('static', filename='images/Hydepark.jpg') }}"
+                        alt="Hydepark press photo"
+                    >
+                    <span>Hydepark</span>
+                </a>
+
+                <a
+                    href="{{ url_for('static', filename='images/peter.jpg') }}"
+                    target="_blank"
+                    rel="noopener noreferrer"
                 >
-                <img
-                    src="{{ url_for('static', filename='images/legalizers.jpg') }}"
-                    alt="Hydepark and the Legalizers"
+                    <img
+                        src="{{ url_for('static', filename='images/peter.jpg') }}"
+                        alt="Peter Kølgaard press photo"
+                    >
+                    <span>Peter Kølgaard</span>
+                </a>
+
+                <a
+                    href="{{ url_for('static', filename='images/Lukas.jpg') }}"
+                    target="_blank"
+                    rel="noopener noreferrer"
                 >
+                    <img
+                        src="{{ url_for('static', filename='images/Lukas.jpg') }}"
+                        alt="Lukas Brun press photo"
+                    >
+                    <span>Lukas Brun</span>
+                </a>
+
+                <a
+                    href="{{ url_for('static', filename='images/anders.jpeg') }}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                >
+                    <img
+                        src="{{ url_for('static', filename='images/anders.jpeg') }}"
+                        alt="Anders Vestergaard press photo"
+                    >
+                    <span>Anders Vestergaard</span>
+                </a>
             </div>
         </section>
 
