@@ -103,6 +103,15 @@ h2 {
     font-size: 1.1rem;
 }
 
+.placeholder a {
+    color: var(--accent);
+    text-underline-offset: 0.15em;
+}
+
+.placeholder a:hover {
+    color: var(--text);
+}
+
 .music-links {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
