@@ -37,9 +37,9 @@
         rel="stylesheet"
         href="{{ url_for('static', filename='css/epk.css') }}"
     >
-</head>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/site.css') }}"></head>
 
-<body>
+<body><a class="skip-link" href="#main">Spring til indhold</a><header class="site-header"><a class="wordmark" href="{{ url_for('index') }}">Hydepark <span>and the Legalizers</span></a><nav aria-label="Hovedmenu">{% for endpoint, label in navigation %}<a href="{{ url_for(endpoint) }}" {% if endpoint == 'epk' %}aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}</nav></header>
     <header class="hero">
         <div class="hero-inner">
             <p class="eyebrow">ELEKTRONISK PRESSEKIT</p>
@@ -57,7 +57,7 @@
         </div>
     </header>
 
-    <main>
+    <main id="main">
         <section id="about" class="section">
             <p class="section-label">01 — OM</p>
 
@@ -189,12 +189,12 @@
             <h2>Presse &amp; downloads</h2>
 
             <p class="press-intro">
-                Pressefotos i høj opløsning. Klik på et billede for at åbne originalfilen.
+                Pressefotos i høj opløsning. Klik på et billede for at downloade originalfilen.
             </p>
 
-            <div class="press-images">
+            <p><a class="button" download href="{{ url_for('static', filename='graphics/logo-bus.pdf') }}">Download logo (PDF)</a> <a class="button" download href="{{ url_for('static', filename='downloads/biografi.txt') }}">Download biografi</a></p><div class="press-images">
                 <a
-                    href="{{ url_for('static', filename='images/Hydepark.jpg') }}"
+                    download href="{{ url_for('static', filename='images/Hydepark.jpg') }}"
                     target="_blank"
                     rel="noopener noreferrer"
                 >
@@ -206,7 +206,7 @@
                 </a>
 
                 <a
-                    href="{{ url_for('static', filename='images/peter.jpg') }}"
+                    download href="{{ url_for('static', filename='images/peter.jpg') }}"
                     target="_blank"
                     rel="noopener noreferrer"
                 >
@@ -218,7 +218,7 @@
                 </a>
 
                 <a
-                    href="{{ url_for('static', filename='images/Lukas.jpg') }}"
+                    download href="{{ url_for('static', filename='images/Lukas.jpg') }}"
                     target="_blank"
                     rel="noopener noreferrer"
                 >
@@ -230,7 +230,7 @@
                 </a>
 
                 <a
-                    href="{{ url_for('static', filename='images/anders.jpeg') }}"
+                    download href="{{ url_for('static', filename='images/anders.jpeg') }}"
                     target="_blank"
                     rel="noopener noreferrer"
                 >
@@ -246,7 +246,7 @@
         <section class="section">
             <p class="section-label">04 — KONTAKT</p>
 
-            <h2>Kontakt</h2>
+            <h2>Kontakt</h2><p><a href="{{ url_for('contact') }}">Kontakt / Booking →</a></p><p class="muted">Teknisk rider fås efter aftale med bandet.</p>
 
             <p class="placeholder">
                 Booking, presse og andre henvendelser:

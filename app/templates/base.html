@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="da"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Hydepark and the Legalizers{% endblock %}</title>
+<meta name="description" content="Hydepark and the Legalizers — reggae, dub, musik og booking.">
+<link rel="icon" href="{{ url_for('static', filename='icons/favicon.ico') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/epk.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/site.css') }}"></head>
+<body class="{% block body_class %}{% endblock %}"><a class="skip-link" href="#main">Spring til indhold</a>
+{% block header %}<header class="site-header"><a class="wordmark" href="{{ url_for('index') }}">Hydepark <span>and the Legalizers</span></a>
+<nav aria-label="Hovedmenu">{% for endpoint, label in navigation %}<a href="{{ url_for(endpoint) }}" {% if request.endpoint == endpoint %}aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}</nav></header>{% endblock %}
+<main id="main">{% block content %}{% endblock %}</main>
+<footer><p>© Hydepark and the Legalizers</p><a href="https://www.facebook.com/profile.php?id=61593483573608" target="_blank" rel="noopener noreferrer">Facebook ↗</a></footer>
+{% block scripts %}{% endblock %}</body></html>

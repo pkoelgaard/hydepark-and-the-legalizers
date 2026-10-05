@@ -1,0 +1,4 @@
+{% extends 'base.html' %}{% block body_class %}home{% endblock %}{% block header %}{% endblock %}
+{% block content %}<section class="home-inner"><h1 class="sr-only">Hydepark and the Legalizers</h1>
+<img class="home-logo" src="{{ url_for('static', filename='graphics/logo-bus.png') }}" alt="Hydepark and the Legalizers — logo med bus nr. 8" width="1220" height="1250">
+<nav class="home-nav" aria-label="Hovedmenu">{% for endpoint, label in navigation %}<a href="{{ url_for(endpoint) }}">{{ label }}</a>{% endfor %}</nav></section>{% endblock %}
