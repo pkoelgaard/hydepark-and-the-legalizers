@@ -1,1 +1,24 @@
-{% extends 'base.html' %}{% block title %}Shop / Merch — Hydepark and the Legalizers{% endblock %}{% block content %}<section class="section page-section"><p class="section-label">HYDEPARK AND THE LEGALIZERS</p><h1 class="page-title">Shop / Merch</h1>{% if content.shop_url %}<p class="lead">Find vores merch i shoppen.</p><a class="button" href="{{ content.shop_url }}" target="_blank" rel="noopener noreferrer">Besøg shoppen ↗</a>{% else %}<p class="lead">Der er endnu ingen webshop at linke til.</p><p>Spørg os om merch og kommende udgivelser.</p><a class="button" href="{{ url_for('contact') }}">Kontakt bandet</a>{% endif %}</section>{% endblock %}
+{% extends 'base.html' %}
+{% block title %}Shop / Merch — Hydepark and the Legalizers{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/shop.css') }}">
+<section class="section page-section merch-shop" data-ready="{{ 'true' if shop_ready else 'false' }}" data-shipping="{{ shipping_dkk if shipping_dkk is not none else '' }}">
+<p class="section-label">HYDEPARK AND THE LEGALIZERS</p>
+<h1 class="page-title">Tag musikken med.</h1>
+<p class="lead">Shop / Merch · Bandets T-shirt til 200 kr.</p>
+{% if not shop_ready %}<p class="shop-notice">Shoppen er på vej. Du kan sammensætte din kurv, men betaling er ikke åben endnu.</p>{% endif %}
+{% if request.args.get('cancelled') %}<p class="shop-notice">Betalingen blev afbrudt. Din kurv er stadig gemt.</p>{% endif %}
+<div class="shop-grid">
+<article class="merch-product">
+<div class="merch-art"><img src="{{ url_for('static', filename='graphics/hydepark-and-the-legalizers-logo.jpg') }}" alt="Hydepark and the Legalizers bandlogo"><span>Bandlogo · produktfoto kommer</span></div>
+<h2>Hydepark T-shirt</h2><p class="merch-price">200 kr.</p><p class="muted">Størrelser S–XXL. Vi sender selv jeres merch.</p>
+<form id="product-form"><label for="size">Størrelse</label><select id="size" name="size">{% for size in sizes %}<option value="{{ size }}" {% if shop_ready and size not in available_sizes %}disabled{% endif %}>{{ size }}{% if shop_ready and size not in available_sizes %} — udsolgt{% endif %}</option>{% endfor %}</select>
+<label for="quantity">Antal</label><input id="quantity" type="number" min="1" max="10" value="1" required>
+<button class="button" type="submit">Læg i kurv</button></form>
+</article>
+<aside class="merch-cart" aria-labelledby="cart-title"><h2 id="cart-title">Din kurv</h2><div id="cart-items"></div><div class="cart-totals"><p>Varer <strong id="subtotal">0 kr.</strong></p><p>Fragt <strong id="shipping">{% if shipping_dkk is none %}Afventer{% else %}{{ shipping_dkk }} kr.{% endif %}</strong></p><p class="cart-total">I alt <strong id="total">0 kr.</strong></p></div><p class="muted">{% if shipping_dkk is none %}Fragtprisen er endnu ikke fastlagt.{% else %}Forsendelse i Danmark: {{ shipping_dkk }} kr. pr. ordre.{% endif %}</p>
+<button type="button" class="button" id="checkout" disabled>{{ 'Gå til betaling' if shop_ready else 'Betaling åbner snart' }}</button><p id="shop-status" role="status" aria-live="polite"></p><p class="muted">Spørgsmål om merch? <a href="{{ url_for('contact') }}">Kontakt bandet</a>.</p></aside>
+</div><noscript><p>Slå JavaScript til for at bruge kurven, eller kontakt bandet.</p></noscript>
+</section>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/shop.js') }}" defer></script>{% endblock %}

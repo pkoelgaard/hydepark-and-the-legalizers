@@ -1,8 +1,11 @@
 import json
 from pathlib import Path
 from flask import Flask, render_template
+from merch import merch, shop_settings
 
 app = Flask(__name__)
+app.register_blueprint(merch)
+app.config["MAX_CONTENT_LENGTH"] = 16 * 1024
 NAVIGATION = [('tour', 'Koncerter / Tour'), ('bio', 'Om bandet / Bio'), ('music', 'Musik / Diskografi'), ('contact', 'Kontakt / Booking'), ('epk', 'Pressekit / EPK'), ('gallery', 'Galleri / Video'), ('shop', 'Shop / Merch')]
 
 @app.context_processor
@@ -39,7 +42,7 @@ def gallery():
 
 @app.get("/shop")
 def shop():
-    return render_template("shop.html")
+    return render_template("shop.html", **shop_settings())
 
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=5000)
