@@ -4,6 +4,7 @@ from pathlib import Path
 import sys
 from types import SimpleNamespace
 import unittest
+import stripe
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'app'))
@@ -71,11 +72,19 @@ class ShopShippingTests(unittest.TestCase):
 
     def test_test_shop_notice_and_verified_success(self):
         self.assertIn(b'TESTSHOP', self.client.get('/shop').data)
-        with patch('merch.stripe.checkout.Session.retrieve', return_value=SimpleNamespace(payment_status='paid', metadata={'shop': 'hydepark-merch'})):
+        with patch('merch.stripe.checkout.Session.retrieve', return_value=stripe.checkout.Session.construct_from({'payment_status': 'paid', 'metadata': {'shop': 'hydepark-merch'}}, 'sk_test_example')):
             page = self.client.get('/shop/tak?session_id=cs_test_example').data
             self.assertIn('Testbetalingen lykkedes!'.encode(), page)
-        with patch('merch.stripe.checkout.Session.retrieve', return_value=SimpleNamespace(payment_status='unpaid', metadata={'shop': 'hydepark-merch'})):
+        with patch('merch.stripe.checkout.Session.retrieve', return_value=stripe.checkout.Session.construct_from({'payment_status': 'unpaid', 'metadata': {'shop': 'hydepark-merch'}}, 'sk_test_example')):
             self.assertNotIn(b'payment-confirmed', self.client.get('/shop/tak?session_id=cs_test_example').data)
+
+    def test_missing_or_wrong_metadata_does_not_confirm_payment(self):
+        for metadata in [None, {}, {'shop': 'other-shop'}]:
+            result = stripe.checkout.Session.construct_from({'payment_status': 'paid', 'metadata': metadata}, 'sk_test_example')
+            with patch('merch.stripe.checkout.Session.retrieve', return_value=result):
+                response = self.client.get('/shop/tak?session_id=cs_test_example')
+                self.assertEqual(response.status_code, 200)
+                self.assertNotIn(b'payment-confirmed', response.data)
 
 
 if __name__ == '__main__':

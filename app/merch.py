@@ -81,7 +81,7 @@ def thanks():
     if session_id.startswith('cs_') and len(session_id) < 256 and os.getenv('STRIPE_SECRET_KEY'):
         try:
             result = stripe.checkout.Session.retrieve(session_id, api_key=os.environ['STRIPE_SECRET_KEY'])
-            paid = result.payment_status == 'paid' and result.metadata.get('shop') == 'hydepark-merch'
+            paid = result.payment_status == 'paid' and (result.to_dict().get('metadata') or {}).get('shop') == 'hydepark-merch'
         except stripe.StripeError:
             pass
     return render_template('shop_thanks.html', paid=paid, test_only=settings['test_only'])
