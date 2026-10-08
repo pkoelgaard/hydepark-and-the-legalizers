@@ -17,8 +17,13 @@
       const remove = document.createElement('button'); remove.type='button'; remove.textContent='Fjern'; remove.disabled=busy; remove.setAttribute('aria-label', `Fjern T-shirt i ${item.size}`); remove.onclick=()=>{cart=cart.filter(x=>x!==item);render();}; actions.append(remove); row.append(text, actions); list.append(row);
     });
     const subtotal = cart.reduce((n,x)=>n+x.quantity*200,0), shipping = root.dataset.shipping;
-    document.getElementById('subtotal').textContent=money(subtotal);
-    document.getElementById('total').textContent=shipping === '' && cart.length ? `${money(subtotal)} + fragt` : money(subtotal+(cart.length ? Number(shipping) : 0));
+    const threshold = Number(root.dataset.freeShipping);
+    const free = subtotal >= threshold;
+    const shippingAmount = cart.length && !free && shipping !== '' ? Number(shipping) : 0;
+    document.getElementById('subtotal').textContent = money(subtotal);
+    document.getElementById('shipping').textContent = !cart.length ? money(0) : shipping === '' ? 'Afventer' : free ? 'Gratis' : money(shippingAmount);
+    document.getElementById('total').textContent = shipping === '' && cart.length ? `${money(subtotal)} + fragt` : money(subtotal + shippingAmount);
+    document.getElementById('free-shipping-progress').textContent = !cart.length ? '' : free ? 'Du har gratis fragt!' : `Køb for ${money(threshold - subtotal)} mere og få gratis fragt.`;
     checkout.disabled = busy || !cart.length || root.dataset.ready !== 'true';
   }
   document.getElementById('product-form').onsubmit = e => { e.preventDefault(); if(busy)return; const size=document.getElementById('size').value, quantity=Number(document.getElementById('quantity').value); if(!sizes.includes(size)||!Number.isInteger(quantity)||quantity<1||cart.reduce((n,x)=>n+x.quantity,0)+quantity>10){status.textContent='Vælg mellem 1 og 10 T-shirts i alt.';return;} const existing=cart.find(x=>x.size===size);if(existing)existing.quantity+=quantity;else cart.push({size,quantity});render();status.textContent=`T-shirt i ${size} er lagt i kurven.`; };

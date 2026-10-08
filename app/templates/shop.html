@@ -2,11 +2,12 @@
 {% block title %}Shop / Merch — Hydepark and the Legalizers{% endblock %}
 {% block content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/shop.css') }}">
-<section class="section page-section merch-shop" data-ready="{{ 'true' if shop_ready else 'false' }}" data-shipping="{{ shipping_dkk if shipping_dkk is not none else '' }}">
+<section class="section page-section merch-shop" data-ready="{{ 'true' if shop_ready else 'false' }}" data-shipping="{{ shipping_dkk if shipping_dkk is not none else '' }}" data-free-shipping="{{ free_shipping_dkk }}">
 <p class="section-label">HYDEPARK AND THE LEGALIZERS</p>
 <h1 class="page-title">Tag musikken med.</h1>
-<p class="lead">Shop / Merch · Bandets T-shirt til 200 kr.</p>
+<p class="lead">Shop / Merch · Bandets T-shirt til 200 kr.</p><p class="muted">Hydepark and the Legalizers · CVR-/SE-nr. 17753738</p>
 {% if not shop_ready %}<p class="shop-notice">Shoppen er på vej. Du kan sammensætte din kurv, men betaling er ikke åben endnu.</p>{% endif %}
+{% if shop_ready and test_only %}<p class="shop-notice">TESTSHOP · Ingen rigtige betalinger eller forsendelser. Brug kun Stripe-testkort.</p>{% endif %}
 {% if request.args.get('cancelled') %}<p class="shop-notice">Betalingen blev afbrudt. Din kurv er stadig gemt.</p>{% endif %}
 <div class="shop-grid">
 <article class="merch-product">
@@ -16,7 +17,7 @@
 <label for="quantity">Antal</label><input id="quantity" type="number" min="1" max="10" value="1" required>
 <button class="button" type="submit">Læg i kurv</button></form>
 </article>
-<aside class="merch-cart" aria-labelledby="cart-title"><h2 id="cart-title">Din kurv</h2><div id="cart-items"></div><div class="cart-totals"><p>Varer <strong id="subtotal">0 kr.</strong></p><p>Fragt <strong id="shipping">{% if shipping_dkk is none %}Afventer{% else %}{{ shipping_dkk }} kr.{% endif %}</strong></p><p class="cart-total">I alt <strong id="total">0 kr.</strong></p></div><p class="muted">{% if shipping_dkk is none %}Fragtprisen er endnu ikke fastlagt.{% else %}Forsendelse i Danmark: {{ shipping_dkk }} kr. pr. ordre.{% endif %}</p>
+<aside class="merch-cart" aria-labelledby="cart-title"><h2 id="cart-title">Din kurv</h2><div id="cart-items"></div><div class="cart-totals"><p>Varer <strong id="subtotal">0 kr.</strong></p><p>Fragt <strong id="shipping">{% if shipping_dkk is none %}Afventer{% else %}{{ shipping_dkk }} kr.{% endif %}</strong></p><p class="cart-total">I alt <strong id="total">0 kr.</strong></p></div><p class="muted">{% if shipping_dkk is none %}Fragtprisen er endnu ikke fastlagt.{% else %}DAO hjemmelevering i Danmark: {{ shipping_dkk }} kr. Gratis fragt ved køb for mindst {{ free_shipping_dkk }} kr.{% endif %}</p><p id="free-shipping-progress" role="status" aria-live="polite"></p>
 <button type="button" class="button" id="checkout" disabled>{{ 'Gå til betaling' if shop_ready else 'Betaling åbner snart' }}</button><p id="shop-status" role="status" aria-live="polite"></p><p class="muted">Spørgsmål om merch? <a href="{{ url_for('contact') }}">Kontakt bandet</a>.</p></aside>
 </div><noscript><p>Slå JavaScript til for at bruge kurven, eller kontakt bandet.</p></noscript>
 </section>
